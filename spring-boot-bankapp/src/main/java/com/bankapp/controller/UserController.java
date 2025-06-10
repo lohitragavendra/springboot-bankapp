@@ -22,15 +22,15 @@ public class UserController {
     	 return userService.login(loginDto);
      }
 
-    @GetMapping("balanceEnquiry")
-    public BankResponse balanceEnquiry(@RequestBody EnquiryRequest request){
-        return userService.balanceEnquiry(request);
-    }
+     @PostMapping("balanceEnquiry")
+     public BankResponse balanceEnquiry(@RequestBody EnquiryRequest request){
+         return userService.balanceEnquiry(request);
+     }
 
-    @GetMapping("nameEnquiry")
-    public String nameEnquiry(@RequestBody EnquiryRequest request) {
-        return userService.nameEnquiry(request);
-    }
+     @PostMapping("nameEnquiry")
+     public String nameEnquiry(@RequestBody EnquiryRequest request) {
+         return userService.nameEnquiry(request);
+     }
 
     @PostMapping("credit")
     public BankResponse creditAccount(@RequestBody CreditDebitRequest request){

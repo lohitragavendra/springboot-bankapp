@@ -7,8 +7,14 @@ import {
     Typography,
     Button,
     Box,
-    Card,
-    CardContent,
+    CircularProgress,
+    Alert,
+    TableContainer,
+    Table,
+    TableHead,
+    TableBody,
+    TableRow,
+    TableCell,
 } from '@mui/material';
 import {
     Payment,
@@ -18,35 +24,151 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { userService } from '../services/api';
+import { Transaction } from '../types';
 
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
     const { user, logout } = useAuth();
     const [balance, setBalance] = useState<number | null>(null);
     const [accountName, setAccountName] = useState<string>('');
+    const [accountNumber, setAccountNumber] = useState<string>('');
+    const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchAccountInfo = async () => {
-            if (user?.accountInfo?.accountNumber) {
-                try {
-                    const balanceResponse = await userService.balanceEnquiry({
-                        accountNumber: user.accountInfo.accountNumber,
-                    });
-                    const nameResponse = await userService.nameEnquiry({
-                        accountNumber: user.accountInfo.accountNumber,
-                    });
+            try {
+                setLoading(true);
+                setError(null);
 
-                    if (balanceResponse.responseCode === '00' && balanceResponse.accountInfo) {
-                        setBalance(balanceResponse.accountInfo.accountBalance);
-                    }
-                    setAccountName(nameResponse);
-                } catch (error) {
-                    console.error('Error fetching account info:', error);
+                // Get account number from localStorage or user context
+                const storedAccountNumber = localStorage.getItem('accountNumber');
+                const userAccountNumber = user?.accountInfo?.accountNumber;
+                const finalAccountNumber = storedAccountNumber || userAccountNumber;
+
+                if (!finalAccountNumber) {
+                    console.warn('No account number found');
+                    setError('Unable to fetch account information. Please try logging in again.');
+                    setLoading(false);
+                    return;
                 }
+
+                setAccountNumber(finalAccountNumber);
+
+                // Fetch balance
+                try {
+                    console.log('Fetching balance for account:', finalAccountNumber);
+                    const balanceResponse = await userService.balanceEnquiry({
+                        accountNumber: finalAccountNumber,
+                    });
+                    console.log('Balance enquiry response:', balanceResponse);
+
+                    // Check for balance in different possible locations
+                    const balance = balanceResponse.accountInfo?.accountBalance ||
+                        balanceResponse.accountBalance ||
+                        (typeof balanceResponse.responseMessage === 'string' ?
+                            parseFloat(balanceResponse.responseMessage) : null);
+
+                    console.log('Extracted balance:', balance);
+
+                    if (balance !== null && !isNaN(balance)) {
+                        setBalance(balance);
+                    } else {
+                        console.warn('Invalid balance value:', balance);
+                        setBalance(null);
+                    }
+                } catch (error: any) {
+                    console.error('Error fetching balance:', error);
+                    console.error('Error details:', {
+                        message: error.message,
+                        response: error.response?.data,
+                        status: error.response?.status
+                    });
+                    setBalance(null);
+                }
+
+                // Fetch account name
+                try {
+                    console.log('Fetching name for account:', finalAccountNumber);
+                    const nameResponse = await userService.nameEnquiry({
+                        accountNumber: finalAccountNumber,
+                    });
+                    console.log('Name enquiry response:', nameResponse);
+                    if (nameResponse) {
+                        setAccountName(nameResponse);
+                    } else {
+                        console.warn('Empty name response received');
+                    }
+                } catch (error: any) {
+                    console.error('Error fetching account name:', error);
+                    console.error('Error details:', {
+                        message: error.message,
+                        response: error.response?.data,
+                        status: error.response?.status
+                    });
+                    // Don't set error state for name fetch failure
+                }
+
+                // Fetch recent transactions
+                try {
+                    console.log('Fetching transactions for account:', finalAccountNumber);
+                    const today = new Date();
+                    const thirtyDaysAgo = new Date(today.setDate(today.getDate() - 30));
+                    const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+                    const endDate = new Date().toISOString().split('T')[0];
+
+                    console.log('Date range:', { startDate, endDate });
+
+                    const transactionsResponse = await userService.getBankStatement({
+                        accountNumber: finalAccountNumber,
+                        startDate,
+                        endDate,
+                    });
+                    console.log('Raw transactions response:', transactionsResponse);
+
+                    // Sort transactions by date in descending order and take the most recent 5
+                    const sortedTransactions = Array.isArray(transactionsResponse)
+                        ? [...transactionsResponse].sort((a, b) => {
+                            console.log('Comparing dates:', {
+                                a: a.createdAt,
+                                b: b.createdAt,
+                                aTime: new Date(a.createdAt).getTime(),
+                                bTime: new Date(b.createdAt).getTime()
+                            });
+                            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                        }).slice(0, 5)
+                        : [];
+
+                    console.log('Sorted transactions:', sortedTransactions);
+                    setRecentTransactions(sortedTransactions);
+                } catch (error: any) {
+                    console.error('Error fetching transactions:', error);
+                    console.error('Error details:', {
+                        message: error.message,
+                        response: error.response?.data,
+                        status: error.response?.status,
+                        config: error.config
+                    });
+                    setRecentTransactions([]);
+                }
+
+            } catch (error: any) {
+                console.error('Error in fetchAccountInfo:', error);
+                // Only set error if it's a critical error
+                if (error.response?.status === 401) {
+                    setError('Session expired. Please log in again.');
+                } else {
+                    setError('Failed to fetch some account information. Please try refreshing the page.');
+                }
+            } finally {
+                setLoading(false);
             }
         };
 
-        fetchAccountInfo();
+        if (user) {
+            fetchAccountInfo();
+        }
     }, [user]);
 
     const handleLogout = () => {
@@ -54,8 +176,32 @@ const Dashboard: React.FC = () => {
         navigate('/login');
     };
 
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString();
+    };
+
+    const formatAmount = (amount: number) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'INR'
+        }).format(amount);
+    };
+
+    if (loading) {
+        return (
+            <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <CircularProgress />
+            </Container>
+        );
+    }
+
     return (
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+            {error && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                    {error}
+                </Alert>
+            )}
             <Grid container spacing={3}>
                 {/* Account Summary */}
                 <Grid item xs={12} md={8} lg={9}>
@@ -71,13 +217,13 @@ const Dashboard: React.FC = () => {
                             Account Summary
                         </Typography>
                         <Typography component="p" variant="h4">
-                            {accountName}
+                            {accountName || 'Loading...'}
                         </Typography>
                         <Typography component="p" variant="h6" color="text.secondary">
-                            Account Number: {user?.accountInfo?.accountNumber}
+                            Account Number: {accountNumber || 'Loading...'}
                         </Typography>
                         <Typography component="p" variant="h4" sx={{ mt: 2 }}>
-                            Balance: ${balance?.toFixed(2) || '0.00'}
+                            Balance: {balance !== null ? formatAmount(balance) : 'Loading...'}
                         </Typography>
                     </Paper>
                 </Grid>
@@ -134,16 +280,36 @@ const Dashboard: React.FC = () => {
                         <Typography component="h2" variant="h6" color="primary" gutterBottom>
                             Recent Transactions
                         </Typography>
-                        <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', p: 1 }}>
-                            {/* Placeholder for recent transactions */}
-                            <Card sx={{ minWidth: 275 }}>
-                                <CardContent>
-                                    <Typography color="text.secondary" gutterBottom>
-                                        No recent transactions
-                                    </Typography>
-                                </CardContent>
-                            </Card>
-                        </Box>
+                        <TableContainer>
+                            <Table>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell>Date</TableCell>
+                                        <TableCell>Transaction Type</TableCell>
+                                        <TableCell align="right">Amount</TableCell>
+                                        <TableCell>Status</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {recentTransactions.length > 0 ? (
+                                        recentTransactions.map((transaction) => (
+                                            <TableRow key={transaction.id}>
+                                                <TableCell>{formatDate(transaction.createdAt)}</TableCell>
+                                                <TableCell>{transaction.transactionType}</TableCell>
+                                                <TableCell align="right">{formatAmount(transaction.amount)}</TableCell>
+                                                <TableCell>{transaction.status || 'SUCCESS'}</TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={4} align="center">
+                                                No recent transactions
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
                     </Paper>
                 </Grid>
             </Grid>

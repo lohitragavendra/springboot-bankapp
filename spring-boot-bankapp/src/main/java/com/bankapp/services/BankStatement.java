@@ -1,4 +1,4 @@
-package com.bankapp.services;
+	package com.bankapp.services;
 
 import com.itextpdf.text.*;
 
@@ -14,6 +14,7 @@ import com.bankapp.repository.IUserRepository;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -26,8 +27,11 @@ import java.util.List;
 @AllArgsConstructor
 @Slf4j
 public class BankStatement {
+    @Autowired
     private TransactionRepository transactionRepository;
+    @Autowired
     private IUserRepository userRepository;
+    @Autowired
     private EmailService emailService;
     private static final String FILE = "Statement.pdf";
     /**
@@ -39,9 +43,30 @@ public class BankStatement {
     public List<Transaction> generateStatement(String accountNumber, String startDate, String endDate) throws FileNotFoundException, DocumentException {
         LocalDate start = LocalDate.parse(startDate, DateTimeFormatter.ISO_DATE);
         LocalDate end = LocalDate.parse(endDate, DateTimeFormatter.ISO_DATE);
-        List<Transaction> transactionList = transactionRepository.findAll().stream().filter(transaction -> transaction.getAccountNumber().equals(accountNumber))
-                .filter(transaction -> transaction.getCreatedAt().isEqual(start)).filter(transaction -> transaction.getCreatedAt().isEqual(end)).toList();
-        log.info("transactionList -> " + transactionList);
+        
+        log.info("Generating statement for account: {} from {} to {}", accountNumber, startDate, endDate);
+        
+        List<Transaction> allTransactions = transactionRepository.findAll();
+        log.info("Total transactions in database: {}", allTransactions.size());
+        
+        List<Transaction> transactionList = allTransactions.stream()
+                .filter(transaction -> {
+                    boolean matchesAccount = transaction.getAccountNumber().equals(accountNumber);
+                    if (matchesAccount) {
+                        log.info("Found transaction for account {}: {}", accountNumber, transaction);
+                    }
+                    return matchesAccount;
+                })
+                .filter(transaction -> {
+                    boolean isInDateRange = !transaction.getCreatedAt().isBefore(start) && !transaction.getCreatedAt().isAfter(end);
+                    if (isInDateRange) {
+                        log.info("Transaction {} is within date range", transaction);
+                    }
+                    return isInDateRange;
+                })
+                .toList();
+                
+        log.info("Filtered transactions: {}", transactionList);
         User user = userRepository.findByAccountNumber(accountNumber);
         String customerName = user.getFirstName() + " " + user.getLastName();
         Rectangle statementSize = new Rectangle(PageSize.A4);

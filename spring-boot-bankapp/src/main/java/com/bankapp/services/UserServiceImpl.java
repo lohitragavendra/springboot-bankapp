@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Optional;
 
 @Service
 public class UserServiceImpl  implements UserService{
@@ -97,10 +98,28 @@ public class UserServiceImpl  implements UserService{
     			.build();
     	
     	emailService.sendEmailAlert(loginAlert);
-    	return BankResponse.builder()
-    			.responseCode("Login Success")
-    			.responseMessage(jwtTokenProvider.generateToken(authentication))
-    			.build();
+    	
+    	Optional<User> userOptional = userRepository.findByEmail(loginDTO.getEmail());
+    	if (userOptional.isPresent()) {
+    	    User user = userOptional.get();
+    	    AccountInfo accountInfo = AccountInfo.builder()
+    	        .accountNumber(user.getAccountNumber())
+    	        .accountName(user.getFirstName() + " " + user.getLastName())
+    	        .accountBalance(user.getBalance())
+    	        .build();
+
+    	    return BankResponse.builder()
+    	        .responseCode("Login Success")
+    	        .responseMessage(jwtTokenProvider.generateToken(authentication))
+    	        .accountInfo(accountInfo)
+    	        .build();
+    	} else {
+    	    // Handle user not found (return error response or throw exception)
+    	    return BankResponse.builder()
+    	        .responseCode("01")
+    	        .responseMessage("User not found")
+    	        .build();
+    	}
     }
     
     @Override
@@ -200,7 +219,7 @@ public class UserServiceImpl  implements UserService{
             userRepository.save(userToDebit);
             TransactionDTO transacctionDto = TransactionDTO.builder()
                     .accountNumber(userToDebit.getAccountNumber())
-                    .transactionType("CREDIT")
+                    .transactionType("DEBIT")
                     .amount(request.getAmount())
                     .build();
 
@@ -238,6 +257,15 @@ public class UserServiceImpl  implements UserService{
         }
         sourceAccountUser.setBalance(sourceAccountUser.getBalance().subtract(request.getAmount()));        
         userRepository.save(sourceAccountUser);
+
+        // Save debit transaction for source account
+        TransactionDTO sourceTransactionDto = TransactionDTO.builder()
+                .accountNumber(sourceAccountUser.getAccountNumber())
+                .transactionType("DEBIT")
+                .amount(request.getAmount())
+                .build();
+        transactionService.saveTransaction(sourceTransactionDto);
+
         EmailDetails debitAlert = EmailDetails.builder()
                 .subject("DEBIT ALERT")
                 .recipient(sourceAccountUser.getEmail())

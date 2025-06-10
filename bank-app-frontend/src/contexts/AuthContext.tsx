@@ -27,31 +27,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const login = async (email: string, password: string) => {
         try {
+            console.log('Starting login process...');
             const response = await userService.login({ email, password });
-            console.log('Login response:', response);
+            console.log('Login response received:', response);
 
-            // If we get here, the login was successful
+            // Store account number if available
+            if (response.accountInfo?.accountNumber) {
+                console.log('Storing account number:', response.accountInfo.accountNumber);
+                localStorage.setItem('accountNumber', response.accountInfo.accountNumber);
+            }
+
+            // Verify token is stored
+            const storedToken = localStorage.getItem('token');
+            console.log('Stored token:', storedToken);
+            console.log('Token length:', storedToken?.length);
+            console.log('Token format:', storedToken?.split('.').length === 3 ? 'Valid JWT format' : 'Invalid JWT format');
+
+            // Update authentication state
             setIsAuthenticated(true);
-            setUser({
-                responseCode: '00',
-                responseMessage: 'Login successful',
-                token: localStorage.getItem('token') || undefined
-            });
+            setUser(response);
+            console.log('Login process completed successfully');
         } catch (error: any) {
             console.error('Login failed:', error);
-            // If the error is a JWT token, it means login was successful
-            if (typeof error === 'string' || (error.response?.data && typeof error.response.data === 'string')) {
-                const token = typeof error === 'string' ? error : error.response.data;
-                localStorage.setItem('token', token);
-                setIsAuthenticated(true);
-                setUser({
-                    responseCode: '00',
-                    responseMessage: 'Login successful',
-                    token: token
-                });
-            } else {
-                throw error;
-            }
+            throw error;
         }
     };
 

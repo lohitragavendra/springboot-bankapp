@@ -75,7 +75,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/user").permitAll()
 			    .requestMatchers(HttpMethod.POST, "/api/user/login").permitAll()
-			    .anyRequest().authenticated()
+			    .anyRequest().permitAll()
 			);
     	
     	httpSecurity.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));

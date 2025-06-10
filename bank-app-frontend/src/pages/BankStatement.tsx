@@ -48,15 +48,39 @@ const BankStatement: React.FC = () => {
             try {
                 if (!values.startDate || !values.endDate) return;
 
-                const response = await userService.getBankStatement({
+                // Set start date to beginning of day
+                const startDate = new Date(values.startDate);
+                startDate.setHours(0, 0, 0, 0);
+
+                // Set end date to end of day
+                const endDate = new Date(values.endDate);
+                endDate.setHours(23, 59, 59, 999);
+
+                console.log('Submitting bank statement request with:', {
                     accountNumber: values.accountNumber,
-                    startDate: values.startDate.toISOString().split('T')[0],
-                    endDate: values.endDate.toISOString().split('T')[0],
+                    startDate: startDate.toISOString().split('T')[0],
+                    endDate: endDate.toISOString().split('T')[0]
                 });
 
-                setTransactions(response);
-                setError(null);
+                const response = await userService.getBankStatement({
+                    accountNumber: values.accountNumber,
+                    startDate: startDate.toISOString().split('T')[0],
+                    endDate: endDate.toISOString().split('T')[0],
+                });
+
+                console.log('Bank statement response:', response);
+                console.log('Response type:', typeof response);
+                console.log('Is array:', Array.isArray(response));
+                console.log('Response length:', Array.isArray(response) ? response.length : 'not an array');
+
+                if (Array.isArray(response) && response.length === 0) {
+                    setError('No transactions found for the selected date range');
+                } else {
+                    setTransactions(response);
+                    setError(null);
+                }
             } catch (err) {
+                console.error('Error fetching bank statement:', err);
                 setError('Failed to fetch bank statement');
                 setTransactions([]);
             }
@@ -149,11 +173,11 @@ const BankStatement: React.FC = () => {
                                 {transactions.map((transaction) => (
                                     <TableRow key={transaction.id}>
                                         <TableCell>
-                                            {new Date(transaction.timestamp).toLocaleDateString()}
+                                            {new Date(transaction.createdAt).toLocaleDateString()}
                                         </TableCell>
                                         <TableCell>{transaction.transactionType}</TableCell>
                                         <TableCell align="right">
-                                            ${transaction.amount.toFixed(2)}
+                                            ₹{transaction.amount.toFixed(2)}
                                         </TableCell>
                                     </TableRow>
                                 ))}

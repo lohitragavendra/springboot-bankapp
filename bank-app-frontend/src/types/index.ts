@@ -35,10 +35,13 @@ export interface BankResponse {
     responseMessage: string;
     token?: string;
     accountInfo?: {
-        accountName: string;
-        accountBalance: number;
-        accountNumber: string;
+        accountName?: string;
+        accountBalance?: number;
+        accountNumber?: string;
     };
+    accountNumber?: string;
+    accountName?: string;
+    accountBalance?: number;
 }
 
 export interface Transaction {
@@ -46,7 +49,8 @@ export interface Transaction {
     accountNumber: string;
     transactionType: string;
     amount: number;
-    timestamp: string;
+    createdAt: string;
+    status: string;
 }
 
 export interface BankStatementRequest {
