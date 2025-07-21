@@ -1,6 +1,11 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+
+
+
+
+
+import { ThemeProvider, CssBaseline, Box } from '@mui/material';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -8,36 +13,25 @@ import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import BankStatement from './pages/BankStatement';
 import Profile from './pages/Profile';
-
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-    background: {
-      default: '#f5f5f5',
-    },
-  },
-});
+import BudgetingAnalytics from './pages/BudgetingAnalytics';
+import Sidebar from './components/Sidebar';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
-
   if (loading) {
     return <div>Loading...</div>;
   }
-
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
 };
 
-function App() {
+function AppContent() {
+  const { isAuthenticated } = useAuth();
+  const currentPath = window.location.pathname;
+  const showSidebar = isAuthenticated && currentPath !== '/login' && currentPath !== '/register';
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <AuthProvider>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+      {showSidebar && <Sidebar />}
+      <Box sx={{ flex: 1, minHeight: '100vh', bgcolor: 'background.default' }}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -73,7 +67,26 @@ function App() {
               </PrivateRoute>
             }
           />
+          <Route
+            path="/budgeting-analytics"
+            element={
+              <PrivateRoute>
+                <BudgetingAnalytics />
+              </PrivateRoute>
+            }
+          />
         </Routes>
+      </Box>
+    </Box>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider theme={require('./theme').default}>
+      <CssBaseline />
+      <AuthProvider>
+        <AppContent />
       </AuthProvider>
     </ThemeProvider>
   );

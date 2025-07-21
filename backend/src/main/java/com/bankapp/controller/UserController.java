@@ -1,5 +1,5 @@
-
 package com.bankapp.controller;
+import java.util.List;
 
 import com.bankapp.dto.*;
 import com.bankapp.services.UserService;
@@ -72,4 +72,10 @@ public class UserController {
         return userService.transfer(request);
     }
 
+    // Get all transactions for the logged-in user
+    @GetMapping("/transactions")
+    public List<TransactionDTO> getAllTransactions(Principal principal) {
+        String userEmail = principal.getName();
+        return userService.getAllTransactionsForUser(userEmail);
+    }
 }

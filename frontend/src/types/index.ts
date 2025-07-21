@@ -49,10 +49,15 @@ export interface BankResponse {
 export interface Transaction {
     id: number;
     accountNumber: string;
-    transactionType: string;
+    // For compatibility with old code
+    transactionType?: 'CREDIT' | 'DEBIT';
+    createdAt?: string;
+    // New fields for analytics
+    type?: 'CREDIT' | 'DEBIT';
+    date?: string;
     amount: number;
-    createdAt: string;
     status: string;
+    category?: string; // e.g., 'Food', 'Bills', 'Shopping', etc.
 }
 
 export interface BankStatementRequest {

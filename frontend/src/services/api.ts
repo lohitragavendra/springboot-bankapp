@@ -1,3 +1,4 @@
+// ...existing code...
 import axios from 'axios';
 import { UserDTO, LoginDto, EnquiryRequest, CreditDebitRequest, TransferRequest, BankResponse, Transaction, BankStatementRequest } from '../types';
 
@@ -89,6 +90,11 @@ api.interceptors.response.use(
 );
 
 export const userService = {
+    getTransactions: async (): Promise<Transaction[]> => {
+        const response = await api.get('/api/user/transactions');
+        // Adjust if your backend returns a different structure
+        return response.data.transactions || response.data || [];
+    },
     getProfile: async (): Promise<UserDTO> => {
         const response = await api.get('/api/user/profile');
         return response.data;

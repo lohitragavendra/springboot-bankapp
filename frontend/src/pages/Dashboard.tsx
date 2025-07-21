@@ -120,7 +120,7 @@ const Dashboard: React.FC = () => {
                         endDate,
                     });
                     const sortedTransactions = Array.isArray(transactionsResponse)
-                        ? [...transactionsResponse].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5)
+                        ? [...transactionsResponse].sort((a, b) => new Date((b.createdAt || '')).getTime() - new Date((a.createdAt || '')).getTime()).slice(0, 5)
                         : [];
                     setRecentTransactions(sortedTransactions);
                 } catch (error: any) {
@@ -148,7 +148,8 @@ const Dashboard: React.FC = () => {
         navigate('/login');
     };
 
-    const formatDate = (dateString: string) => {
+    const formatDate = (dateString: string | undefined) => {
+        if (!dateString) return '';
         return new Date(dateString).toLocaleDateString();
     };
 
@@ -289,7 +290,7 @@ const Dashboard: React.FC = () => {
                                     {recentTransactions.length > 0 ? (
                                         recentTransactions.map((transaction) => (
                                             <TableRow key={transaction.id}>
-                                                <TableCell>{formatDate(transaction.createdAt)}</TableCell>
+                                                <TableCell>{formatDate(transaction.createdAt || '')}</TableCell>
                                                 <TableCell>
                                                     <Chip
                                                         icon={transaction.transactionType === 'CREDIT' ? <TrendingUp color="success" /> : <TrendingDown color="error" />}

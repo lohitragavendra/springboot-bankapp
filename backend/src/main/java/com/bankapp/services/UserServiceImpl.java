@@ -1,5 +1,3 @@
-
-
 package com.bankapp.services;
 
 import com.bankapp.config.JwtTokenProvider;
@@ -21,6 +19,27 @@ import java.util.Optional;
 
 @Service
 public class UserServiceImpl implements UserService {
+    @Autowired
+    com.bankapp.repository.TransactionRepository transactionRepository;
+
+    @Override
+    public java.util.List<TransactionDTO> getAllTransactionsForUser(String email) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) return java.util.Collections.emptyList();
+        User user = userOpt.get();
+        java.util.List<com.bankapp.entity.Transaction> txs = transactionRepository.findByAccountNumber(user.getAccountNumber());
+        java.util.List<TransactionDTO> dtos = new java.util.ArrayList<>();
+        for (com.bankapp.entity.Transaction tx : txs) {
+            dtos.add(TransactionDTO.builder()
+                    .transactionId(tx.getTransactionId())
+                    .transactionType(tx.getTransactionType())
+                    .amount(tx.getAmount())
+                    .accountNumber(tx.getAccountNumber())
+                    .status(tx.getStatus())
+                    .build());
+        }
+        return dtos;
+    }
 
         @Autowired
         IUserRepository userRepository;
@@ -378,9 +397,11 @@ public class UserServiceImpl implements UserService {
                 }
                 user.setPassword(passwordEncoder.encode(request.getNewPassword()));
                 userRepository.save(user);
-                return BankResponse.builder()
-                        .responseCode("00")
-                        .responseMessage("Password changed successfully")
-                        .build();
+        return BankResponse.builder()
+                .responseCode("00")
+                .responseMessage("Password changed successfully")
+                .build();
         }
 }
+
+

@@ -212,7 +212,7 @@ const BankStatement: React.FC = () => {
                                         {transactions.map((transaction) => (
                                             <TableRow key={transaction.id}>
                                                 <TableCell>
-                                                    {new Date(transaction.createdAt).toLocaleDateString()}
+                                                    {new Date(transaction.createdAt || '').toLocaleDateString()}
                                                 </TableCell>
                                                 <TableCell>
                                                     <Chip

@@ -24,4 +24,6 @@ public interface UserService {
 
 	// Password change
 	BankResponse changePassword(String email, ChangePasswordRequest request);
+	// For analytics: get all transactions for a user
+	java.util.List<TransactionDTO> getAllTransactionsForUser(String email);
 }
