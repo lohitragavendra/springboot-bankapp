@@ -1,17 +1,18 @@
-package com.bankapp.controller;
-import java.util.List;
 
+package com.bankapp.controller;
+
+import java.util.List;
 import com.bankapp.dto.*;
 import com.bankapp.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
 import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
-    // ...existing code...
+    @Autowired
+    UserService userService;
 
     // Change password endpoint
     @PostMapping("/changePassword")
@@ -19,9 +20,6 @@ public class UserController {
         String userEmail = principal.getName();
         return userService.changePassword(userEmail, request);
     }
-
-    @Autowired
-    UserService userService;
 
     // Get user profile by email (from Principal or param)
     @GetMapping("/profile")

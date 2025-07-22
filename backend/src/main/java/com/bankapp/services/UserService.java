@@ -1,3 +1,4 @@
+
 package com.bankapp.services;
 
 import com.bankapp.dto.*;
@@ -24,6 +25,12 @@ public interface UserService {
 
 	// Password change
 	BankResponse changePassword(String email, ChangePasswordRequest request);
+
+	// Loan feature
+	LoanDTO applyLoan(String userEmail, LoanDTO loanDTO);
+
+	java.util.List<LoanDTO> getLoans(String userEmail);
+
 	// For analytics: get all transactions for a user
 	java.util.List<TransactionDTO> getAllTransactionsForUser(String email);
 }

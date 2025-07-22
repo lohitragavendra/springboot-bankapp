@@ -15,6 +15,7 @@ import BankStatement from './pages/BankStatement';
 import Profile from './pages/Profile';
 import BudgetingAnalytics from './pages/BudgetingAnalytics';
 import Sidebar from './components/Sidebar';
+import LoanInfo from './pages/LoanInfo';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -72,6 +73,14 @@ function AppContent() {
             element={
               <PrivateRoute>
                 <BudgetingAnalytics />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/loan-info"
+            element={
+              <PrivateRoute>
+                <LoanInfo />
               </PrivateRoute>
             }
           />

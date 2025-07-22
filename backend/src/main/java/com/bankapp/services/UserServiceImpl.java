@@ -19,27 +19,62 @@ import java.util.Optional;
 
 @Service
 public class UserServiceImpl implements UserService {
-    @Autowired
-    com.bankapp.repository.TransactionRepository transactionRepository;
+        @Autowired
+        com.bankapp.repository.LoanRepository loanRepository;
 
-    @Override
-    public java.util.List<TransactionDTO> getAllTransactionsForUser(String email) {
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isEmpty()) return java.util.Collections.emptyList();
-        User user = userOpt.get();
-        java.util.List<com.bankapp.entity.Transaction> txs = transactionRepository.findByAccountNumber(user.getAccountNumber());
-        java.util.List<TransactionDTO> dtos = new java.util.ArrayList<>();
-        for (com.bankapp.entity.Transaction tx : txs) {
-            dtos.add(TransactionDTO.builder()
-                    .transactionId(tx.getTransactionId())
-                    .transactionType(tx.getTransactionType())
-                    .amount(tx.getAmount())
-                    .accountNumber(tx.getAccountNumber())
-                    .status(tx.getStatus())
-                    .build());
+        @Override
+        public LoanDTO applyLoan(String userEmail, com.bankapp.dto.LoanDTO loanDTO) {
+                com.bankapp.entity.Loan loan = new com.bankapp.entity.Loan(userEmail, loanDTO.getType(),
+                                loanDTO.getAmount(), loanDTO.getStatus());
+                loan = loanRepository.save(loan);
+                LoanDTO dto = new LoanDTO();
+                dto.setId(loan.getId());
+                dto.setType(loan.getType());
+                dto.setAmount(loan.getAmount());
+                dto.setStatus(loan.getStatus());
+                dto.setCreatedAt(loan.getCreatedAt());
+                return dto;
         }
-        return dtos;
-    }
+
+        @Override
+        public java.util.List<LoanDTO> getLoans(String userEmail) {
+                java.util.List<com.bankapp.entity.Loan> loans = loanRepository.findByUserEmail(userEmail);
+                java.util.List<LoanDTO> dtos = new java.util.ArrayList<>();
+                for (com.bankapp.entity.Loan loan : loans) {
+                        LoanDTO dto = new LoanDTO();
+                        dto.setId(loan.getId());
+                        dto.setType(loan.getType());
+                        dto.setAmount(loan.getAmount());
+                        dto.setStatus(loan.getStatus());
+                        dto.setCreatedAt(loan.getCreatedAt());
+                        dtos.add(dto);
+                }
+                return dtos;
+        }
+
+        @Autowired
+        com.bankapp.repository.TransactionRepository transactionRepository;
+
+        @Override
+        public java.util.List<TransactionDTO> getAllTransactionsForUser(String email) {
+                Optional<User> userOpt = userRepository.findByEmail(email);
+                if (userOpt.isEmpty())
+                        return java.util.Collections.emptyList();
+                User user = userOpt.get();
+                java.util.List<com.bankapp.entity.Transaction> txs = transactionRepository
+                                .findByAccountNumber(user.getAccountNumber());
+                java.util.List<TransactionDTO> dtos = new java.util.ArrayList<>();
+                for (com.bankapp.entity.Transaction tx : txs) {
+                        dtos.add(TransactionDTO.builder()
+                                        .transactionId(tx.getTransactionId())
+                                        .transactionType(tx.getTransactionType())
+                                        .amount(tx.getAmount())
+                                        .accountNumber(tx.getAccountNumber())
+                                        .status(tx.getStatus())
+                                        .build());
+                }
+                return dtos;
+        }
 
         @Autowired
         IUserRepository userRepository;
@@ -384,24 +419,22 @@ public class UserServiceImpl implements UserService {
                 Optional<User> userOpt = userRepository.findByEmail(email);
                 if (userOpt.isEmpty()) {
                         return BankResponse.builder()
-                                .responseCode("01")
-                                .responseMessage("User not found")
-                                .build();
+                                        .responseCode("01")
+                                        .responseMessage("User not found")
+                                        .build();
                 }
                 User user = userOpt.get();
                 if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
                         return BankResponse.builder()
-                                .responseCode("02")
-                                .responseMessage("Old password is incorrect")
-                                .build();
+                                        .responseCode("02")
+                                        .responseMessage("Old password is incorrect")
+                                        .build();
                 }
                 user.setPassword(passwordEncoder.encode(request.getNewPassword()));
                 userRepository.save(user);
-        return BankResponse.builder()
-                .responseCode("00")
-                .responseMessage("Password changed successfully")
-                .build();
+                return BankResponse.builder()
+                                .responseCode("00")
+                                .responseMessage("Password changed successfully")
+                                .build();
         }
 }
-
-

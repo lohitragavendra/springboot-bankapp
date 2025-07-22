@@ -302,5 +302,11 @@ export const userService = {
             });
             throw error;
         }
+    },
+    applyLoan: async (data: { type: string; amount: number }) => {
+        return api.post('/api/user/loan/apply', data).then(res => res.data);
+    },
+    getLoans: async (): Promise<any[]> => {
+        return api.get('/api/user/loans').then(res => res.data);
     }
-}; 
+};
